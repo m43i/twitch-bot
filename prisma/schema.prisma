@@ -1,0 +1,41 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum ChatUserType {
+    NORMAL
+    GLOBALADMIN
+    GLOBALMOD
+    STAFF
+}
+
+model ChatMessage {
+    msg_id String @id
+    channel_id Int
+    channel String @db.VarChar(255)
+    nick String @db.VarChar(255)
+    display_name String @db.VarChar(255)
+    user_id Int
+    badge_info String? @db.VarChar(255)
+    badges String? @db.VarChar(255)
+    bits Int @default(0)
+    color String @db.VarChar(255)
+    moderator Boolean @default(false)
+    reply_msg_id String? @db.VarChar(255)
+    reply_msg_nick String? @db.VarChar(255)
+    reply_msg_display_name String? @db.VarChar(255)
+    reply_msg_body String? @db.Text
+    subscriber Boolean @default(false)
+    timestamp DateTime @db.Timestamp(0)
+    turbo Boolean @default(false)
+    user_type ChatUserType @default(NORMAL)
+    vip Boolean @default(false)
+    admin Boolean @default(false)
+    body String @db.Text
+    emotes String? @db.Text
+    deleted Boolean @default(false)
+    deleted_timestamp DateTime? @db.Timestamp(0)
+    created_at DateTime @default(now())
+    updated_at DateTime @default(now())
+}

@@ -1,0 +1,2 @@
+[alias]
+bot = "run -p twitch-bot-saver"

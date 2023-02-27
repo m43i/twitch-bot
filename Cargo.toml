@@ -1,0 +1,3 @@
+[workspace]
+members = ["twitch-bot-saver", "utils"]
+resolver = "2"
