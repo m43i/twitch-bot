@@ -63,6 +63,7 @@ impl ParsedMessage {
 
         let tags = crate::parser::clearmsg_tag::parse(&tags);
 
+
         match tags {
             Ok(x) => Some(x),
             _ => None,
@@ -70,6 +71,9 @@ impl ParsedMessage {
     }
 }
 
+/**
+ * Parse the source of the message from the twitch irc
+ */
 pub async fn parse(msg: &str) -> Result<ParsedMessage, Error> {
     let mut idx = 0;
     let mut tags: Option<HashMap<String, String>> = None;
@@ -131,6 +135,9 @@ pub async fn parse(msg: &str) -> Result<ParsedMessage, Error> {
     });
 }
 
+/**
+ * Parse the command from the twitch irc
+ */
 fn parse_command(command: &str) -> IRCCommand {
     let split = command.split(" ").collect::<Vec<&str>>();
     let mut params: Vec<String> = Vec::new();
@@ -151,6 +158,9 @@ fn parse_command(command: &str) -> IRCCommand {
     };
 }
 
+/**
+ * Parse the chat command from the twitch irc
+ */
 fn parse_params(params: &str) -> Option<ChatCommand> {
     if !params.starts_with("!") {
         return None;
@@ -166,6 +176,9 @@ fn parse_params(params: &str) -> Option<ChatCommand> {
     });
 }
 
+/**
+ * Parse the source of the message from the twitch irc
+ */
 fn parse_source(prefix: &str) -> ChatSource {
     let split = prefix.split("!").collect::<Vec<&str>>();
 

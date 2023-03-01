@@ -2,19 +2,27 @@ use anyhow::{Error, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use tokio::net::TcpStream;
 use utils::database::entity::chat_message as chat_message_entity;
+use utils::database::entity::user as user_entity;
 use utils::{
     parser::irc_parser::ParsedMessage,
     sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait},
     tokio_tungstenite::{MaybeTlsStream, WebSocketStream},
 };
 
+/**
+ * Handle the ping event and sends a pong
+ */
 pub async fn handle_ping(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) -> Result<(), Error> {
     return utils::websocket::client::send_message("PONG :tmi.twitch.tv", ws).await;
 }
 
-pub fn handle_privmsg_save(
+/**
+ * Handle the privmsg event and pushes messages and users to their respected vector
+ */
+pub async fn handle_privmsg_save(
     msg: &ParsedMessage,
     msg_vec: &mut Vec<chat_message_entity::ActiveModel>,
+    users: &mut Vec<user_entity::ActiveModel>,
 ) -> Result<(), Error> {
     let message = match &msg.params {
         Some(x) => String::from(x),
@@ -34,11 +42,27 @@ pub fn handle_privmsg_save(
         Some(x) => DateTime::<Utc>::from_utc(x, Utc),
         None => Utc::now(),
     };
+    let current_time = match NaiveDateTime::from_timestamp_opt(Utc::now().timestamp(), 0) {
+        Some(x) => x,
+        None => return Err(Error::msg("Failed to get current time")),
+    };
+
+    if (users.iter().find(|x| x.id == ActiveValue::Set(tags.user_id))).is_none() {
+        users.push(user_entity::ActiveModel {
+            id: ActiveValue::Set(tags.user_id),
+            nick: ActiveValue::Set(String::from(&nick)),
+            display_name: ActiveValue::Set(String::from(&tags.display_name)),
+            updated_at: ActiveValue::Set(
+                NaiveDateTime::from_timestamp_opt(Utc::now().timestamp(), 0).unwrap()
+            ),
+            ..Default::default()
+        });
+    }
 
     msg_vec.push(chat_message_entity::ActiveModel {
         msg_id: ActiveValue::Set(tags.id),
         channel_id: ActiveValue::Set(tags.room_id),
-        channel: ActiveValue::Set(channel_name),
+        channel_name: ActiveValue::Set(channel_name),
         nick: ActiveValue::Set(nick),
         display_name: ActiveValue::Set(tags.display_name),
         user_id: ActiveValue::Set(tags.user_id),
@@ -59,12 +83,20 @@ pub fn handle_privmsg_save(
         admin: ActiveValue::Set(tags.admin as i8),
         body: ActiveValue::Set(message),
         emotes: ActiveValue::Set(tags.emotes),
+        deleted: ActiveValue::Set(0),
+        deleted_timestamp: ActiveValue::Set(None),
+        created_at: ActiveValue::Set(current_time),
+        updated_at: ActiveValue::Set(current_time),
         ..Default::default()
     });
 
     return Ok(());
 }
 
+
+/**
+ * Handle the clearmsg event, it marks messages as deleted in the db
+ */
 pub async fn handle_clearmsg_update(
     msg: &ParsedMessage,
     msg_vec: &mut Vec<chat_message_entity::ActiveModel>,
@@ -107,6 +139,8 @@ pub async fn handle_clearmsg_update(
             chat_message.update(db).await?;
         }
     };
+
+    drop(msg_vec);
 
     return Ok(());
 }

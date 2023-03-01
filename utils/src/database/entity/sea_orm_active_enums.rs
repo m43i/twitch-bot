@@ -3,6 +3,20 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "permission")]
+pub enum Permission {
+    #[sea_orm(string_value = "ADMIN")]
+    Admin,
+    #[sea_orm(string_value = "MOD")]
+    Mod,
+    #[sea_orm(string_value = "VIP")]
+    Vip,
+    #[sea_orm(string_value = "PERMIT")]
+    Permit,
+    #[sea_orm(string_value = "USER")]
+    User,
+}
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "user_type")]
 pub enum UserType {
     #[sea_orm(string_value = "NORMAL")]

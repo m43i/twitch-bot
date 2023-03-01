@@ -27,6 +27,9 @@ pub struct PrivMsgTags {
     pub vip: bool,
 }
 
+/**
+ * Parse the tags from a PRIVMSG message
+ */
 pub fn parse(tags: &HashMap<String, String>) -> Result<PrivMsgTags, Error> {
     let badge_info = match tags.get("badge-info") {
         Some(x) => Some(x.to_string()),

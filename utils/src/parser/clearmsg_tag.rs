@@ -4,11 +4,14 @@ use anyhow::{Result, Error};
 #[derive(Debug, Clone)]
 pub struct ClearMsgTags {
     pub login: String,
-    pub room_id: i64,
+    pub room_id: Option<i64>,
     pub target_msg_id: String,
     pub tmi_sent_ts: i64,
 }
 
+/**
+ * Parse the tags from a CLEARMSG message
+ */
 pub fn parse(tags: &HashMap<String, String>) -> Result<ClearMsgTags, Error> {
     let login = match tags.get("login") {
         Some(x) => x.to_string(),
@@ -16,7 +19,10 @@ pub fn parse(tags: &HashMap<String, String>) -> Result<ClearMsgTags, Error> {
     };
 
     let room_id = match tags.get("room-id") {
-        Some(x) => x.parse::<i64>()?,
+        Some(x) => match x.parse::<i64>() {
+            Ok(x) => Some(x),
+            Err(_) => None,
+        },
         _ => return Err(Error::msg("Missing room-id tag")),
     };
 

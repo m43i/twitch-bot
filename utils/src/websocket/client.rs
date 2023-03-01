@@ -4,11 +4,17 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
+/**
+ * Connect to the twitch IRC server
+ */
 pub async fn connect(url: &str) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, Error> {
     let (ws, _) = connect_async(url).await?;
     Ok(ws)
 }
 
+/**
+ * Send a message to the server
+ */
 pub async fn send_message(
     msg: &str,
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -20,6 +26,9 @@ pub async fn send_message(
     return Ok(());
 }
 
+/**
+ * Authenticate with the server
+ */
 pub async fn auth_message(
     token: &str,
     nick: &str,
@@ -36,6 +45,9 @@ pub async fn auth_message(
     return Ok(());
 }
 
+/**
+ * Join a channel
+ */
 pub async fn join_channels(
     channel: Vec<&str>,
     write: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
