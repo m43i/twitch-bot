@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use anyhow::{Error, Result};
 
-use crate::database::entity::sea_orm_active_enums::UserType;
+use database::entity::sea_orm_active_enums::UserType;
 
 #[derive(Debug, Clone)]
 pub struct PrivMsgTags {

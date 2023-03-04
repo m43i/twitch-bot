@@ -1,8 +1,8 @@
 use anyhow::{Error, Result};
 use std::collections::HashMap;
 
-use crate::parser::privmsg_tag::PrivMsgTags;
-use crate::parser::clearmsg_tag::ClearMsgTags;
+use crate::privmsg_tag::PrivMsgTags;
+use crate::clearmsg_tag::ClearMsgTags;
 
 #[derive(Debug, Clone)]
 pub struct ChatSource {
@@ -47,7 +47,7 @@ impl ParsedMessage {
             _ => return None,
         };
 
-        let tags = crate::parser::privmsg_tag::parse(&tags);
+        let tags = crate::privmsg_tag::parse(&tags);
 
         match tags {
             Ok(x) => Some(x),
@@ -61,7 +61,7 @@ impl ParsedMessage {
             _ => return None,
         };
 
-        let tags = crate::parser::clearmsg_tag::parse(&tags);
+        let tags = crate::clearmsg_tag::parse(&tags);
 
 
         match tags {

@@ -1,19 +1,19 @@
 use anyhow::{Error, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
+use database::sea_orm::ActiveValue;
+use parser::irc_parser::ParsedMessage;
 use tokio::net::TcpStream;
-use utils::database::entity::chat_message as chat_message_entity;
-use utils::database::entity::user as user_entity;
-use utils::{
-    parser::irc_parser::ParsedMessage,
-    sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait},
-    tokio_tungstenite::{MaybeTlsStream, WebSocketStream},
-};
+use database::entity::chat_message as chat_message_entity;
+use database::entity::user as user_entity;
+use websocket::tokio_tungstenite::MaybeTlsStream;
+use websocket::tokio_tungstenite::WebSocketStream;
+use database::sea_orm::prelude::*;
 
 /**
  * Handle the ping event and sends a pong
  */
 pub async fn handle_ping(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) -> Result<(), Error> {
-    return utils::websocket::client::send_message("PONG :tmi.twitch.tv", ws).await;
+    return websocket::messages::send_message("PONG :tmi.twitch.tv", ws).await;
 }
 
 /**

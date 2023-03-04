@@ -1,3 +1,9 @@
 [workspace]
-members = ["twitch-bot-saver", "utils", "twitch-watch-time"]
+members = [
+    "database",
+    "websocket",
+    "parser",
+    "bot-watch-time",
+    "bot-message-saver",
+]
 resolver = "2"
