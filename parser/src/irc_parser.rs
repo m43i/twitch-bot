@@ -10,7 +10,7 @@ pub struct ChatSource {
     pub host: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum IRCCommandType {
     PING,
     PRIVMSG,
