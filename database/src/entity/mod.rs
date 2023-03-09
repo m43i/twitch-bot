@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod account;
+pub mod bot;
 pub mod channel;
 pub mod chat_message;
 pub mod command;

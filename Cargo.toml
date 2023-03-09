@@ -1,9 +1,12 @@
 [workspace]
 members = [
     "database",
+    "cache",
     "websocket",
     "parser",
+    "auth",
     "bot-watch-time",
     "bot-message-saver",
+    "bot-token-validator",
 ]
 resolver = "2"
