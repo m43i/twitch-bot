@@ -1,2 +1,4 @@
 [alias]
-bot = "run -p twitch-bot-saver"
+bot = "run -p bot-message-saver"
+validator = "run -p bot-token-validator"
+watchtime = "run -p bot-watch-time"
