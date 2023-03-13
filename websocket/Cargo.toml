@@ -17,3 +17,5 @@ tokio-tungstenite = { version = "0.18.0", features = [
 ] }
 futures-util = { version = "0.3.26", features = ["sink", "std"] }
 database = { path = "../database" }
+auth = { path = "../auth" }
+cache = { path = "../cache" }

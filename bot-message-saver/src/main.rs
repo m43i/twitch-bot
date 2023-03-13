@@ -5,24 +5,48 @@ use database::entity::chat_message as Chat_Message;
 use database::entity::user as User;
 use dotenvy::dotenv;
 use parser::irc_parser::IRCCommandType;
-use websocket::config::websocket_config;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use websocket::client::connect_channels;
+use websocket::config::websocket_config;
 use websocket::futures_util::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv().ok();
-    let config = websocket_config().await;
+    let ws_endpoint = std::env::var("TWITCH_WS_ENDPOINT").expect("WS_ENDPOINT not set");
+    let db_endpoint = std::env::var("DATABASE_URL").expect("DB_URL not set");
+    let redis_endpoint = std::env::var("REDIS_URL").expect("REDIS_URL not set");
+    let client_id = std::env::var("TWITCH_CLIENT_ID").expect("CLIENT_ID not set");
+    let client_secret = std::env::var("TWITCH_CLIENT_SECRET").expect("CLIENT_SECRET not set");
 
+    let db = database::connect(&db_endpoint).await;
+    let db = match db {
+        Ok(x) => x,
+        Err(_) => return Err(Error::msg("Failed to connect to database")),
+    };
+
+    let redis = cache::connect(&redis_endpoint).await;
+    let mut redis = match redis {
+        Ok(x) => x,
+        Err(_) => return Err(Error::msg("Failed to connect to redis")),
+    };
+
+    let config = websocket_config(
+        "dustin",
+        &ws_endpoint,
+        &client_id,
+        &client_secret,
+        &db,
+        &mut redis,
+    )
+    .await;
     let config = match config {
         Ok(x) => x,
         Err(_) => return Err(Error::msg("Failed to get config")),
     };
 
     let mut ws = config.ws;
-    let db = config.db;
 
     match connect_channels(&db, &mut ws).await {
         Ok(_) => (),
@@ -80,8 +104,7 @@ async fn main() -> Result<(), Error> {
         let messages = messages.split("\r\n").collect::<Vec<&str>>();
 
         for message in messages {
-            let parsed_message = match parser::irc_parser::parse(&message.to_string()).await
-            {
+            let parsed_message = match parser::irc_parser::parse(&message.to_string()).await {
                 Ok(x) => x,
                 Err(e) => {
                     println!("Error parsing message: {}", message);
