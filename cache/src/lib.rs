@@ -60,6 +60,9 @@ pub async fn get<T: FromRedisValue>(key: &str, con: &mut Connection) -> Result<O
  */
 pub async fn mget<T: FromRedisValue>(pattern: &str, con: &mut Connection) -> Result<Vec<T>, Error> {
     let keys: Vec<String> = con.keys(pattern).await?;
+    if keys.len() == 0 {
+        return Ok(vec![]);
+    }
     let values: Vec<T> = con.mget(keys).await?;
 
     return Ok(values);
