@@ -3,16 +3,14 @@ use cache::redis::aio::Connection;
 use database::sea_orm::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[derive(thiserror::Error, Debug)]
 pub enum AuthError {
+    #[error("Request error")]
     RequestError,
+    #[error("Token expired")]
     Expired,
+    #[error("Token invalid")]
     Invalid,
-}
-
-#[derive(Debug)]
-struct RefreshTokenError {
-    error: String,
-    error_description: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -35,19 +33,20 @@ struct RefreshTokenResponse {
 /**
  * Get a bot access token for a given bot
  */
-pub async fn get_bot_token(bot: &str, db: &DatabaseConnection) -> Result<String, Error> {
-    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
-
-    let mut con = cache::connect(&redis_url).await?;
-    let token = cache::get::<String>(&format!("bot:{}", bot), &mut con).await?;
-
+pub async fn get_bot_token(
+    bot: &str,
+    client_id: &str,
+    client_secret: &str,
+    db: &DatabaseConnection,
+    redis: &mut Connection,
+) -> Result<String, Error> {
+    let token = cache::get::<String>(&format!("bot:{}", bot), redis).await?;
     if token.is_some() {
         let token = token.unwrap();
         return Ok(token);
     }
 
-    let token = database::handler::token::get_bot_refresh_token(bot, db).await?;
-
+    let token = refresh_bot_token(bot, client_id, client_secret, db, redis).await?;
     return Ok(token);
 }
 
@@ -56,16 +55,13 @@ pub async fn get_bot_token(bot: &str, db: &DatabaseConnection) -> Result<String,
  */
 pub async fn refresh_bot_token(
     bot: &str,
+    client_id: &str,
+    client_secret: &str,
     db: &DatabaseConnection,
     redis: &mut Connection,
 ) -> Result<String, Error> {
     let token = database::handler::token::get_bot_refresh_token(bot, db).await?;
-    let res = refresh_token(&token).await;
-
-    let res = match res {
-        Ok(res) => res,
-        Err(_) => return Err(Error::msg("Error refreshing token")),
-    };
+    let res = refresh_token(&token, client_id, client_secret).await?;
 
     database::handler::token::update_bot_refresh_token(db, &res.refresh_token).await?;
     cache::set_with_ttl(
@@ -81,10 +77,11 @@ pub async fn refresh_bot_token(
 /**
  * Refresh a token against the twitch api endpoint
  */
-async fn refresh_token(refresh_token: &str) -> Result<RefreshTokenResponse, AuthError> {
-    let client_id = std::env::var("TWITCH_CLIENT_ID").expect("CLIENT_ID must be set");
-    let client_secret = std::env::var("TWITCH_CLIENT_SECRET").expect("CLIENT_SECRET must be set");
-
+async fn refresh_token(
+    refresh_token: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<RefreshTokenResponse, AuthError> {
     let client = reqwest::Client::new();
 
     let res = client
@@ -92,8 +89,8 @@ async fn refresh_token(refresh_token: &str) -> Result<RefreshTokenResponse, Auth
         .form(&RefreshTokenRequest {
             grant_type: String::from("refresh_token"),
             refresh_token: String::from(refresh_token),
-            client_id,
-            client_secret,
+            client_id: String::from(client_id),
+            client_secret: String::from(client_secret),
         })
         .send()
         .await;

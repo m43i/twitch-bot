@@ -1,4 +1,6 @@
 use anyhow::{Error, Result};
+use auth::token::get_bot_token;
+use cache::redis::aio::Connection;
 use database::sea_orm::DatabaseConnection;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
@@ -6,8 +8,8 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use crate::{client::connect, messages::auth_message};
 
 pub struct Config {
-    pub db: DatabaseConnection,
     pub ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    pub nick: String,
 }
 
 /**
@@ -15,24 +17,24 @@ pub struct Config {
  * Setup database connection and websocket
  * Authenticate with twitch
  */
-pub async fn websocket_config() -> Result<Config, Error> {
-    let token = std::env::var("TWITCH_TOKEN").expect("TWITCH_TOKEN must be set");
-    let nick = std::env::var("TWITCH_NICK").expect("TWITCH_NICK must be set");
-    let endpoint = std::env::var("TWITCH_WS_ENDPOINT").expect("TWITCH_ENDPOINT must be set");
-    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-
+pub async fn websocket_config(
+    bot: &str,
+    endpoint: &str,
+    client_id: &str,
+    client_secret: &str,
+    db: &DatabaseConnection,
+    redis: &mut Connection,
+) -> Result<Config, Error> {
     let ws = connect(&endpoint).await;
-    let db = database::connect(&db_url).await;
-
-    let db = match db {
-        Ok(x) => x,
-        Err(_) => return Err(Error::msg("Failed to connect to database")),
-    };
 
     let mut ws = match ws {
         Ok(x) => x,
         Err(_) => return Err(Error::msg("Failed to connect to websocket")),
     };
+
+    let token = get_bot_token(bot, client_id, client_secret, db, redis).await?;
+    let bot_model = database::handler::bot::get_bot(bot, db).await?;
+    let nick = bot_model.nick;
 
     let auth = auth_message(&token, &nick, &mut ws).await;
 
@@ -41,5 +43,5 @@ pub async fn websocket_config() -> Result<Config, Error> {
         Err(_) => return Err(Error::msg("Failed to authenticate")),
     }
 
-    return Ok(Config { db, ws });
+    return Ok(Config { ws, nick });
 }

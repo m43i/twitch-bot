@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use redis::{aio::Connection, AsyncCommands, FromRedisValue, from_redis_value};
+use redis::{aio::Connection, AsyncCommands, FromRedisValue};
 use serde::de::DeserializeOwned;
 
 pub extern crate redis;
@@ -73,12 +73,12 @@ where
     T: DeserializeOwned,
 {
     let value: Option<String> = con.get(key).await?;
-    
+
     return match value {
         Some(value) => {
             let value: T = serde_json::from_str(&value)?;
             Ok(Some(value))
-        },
+        }
         None => Ok(None),
     };
 }
@@ -88,7 +88,7 @@ where
  */
 pub async fn mget_as<T>(pattern: &str, con: &mut Connection) -> Result<Vec<T>, Error>
 where
-    T: DeserializeOwned
+    T: DeserializeOwned,
 {
     let keys: Vec<String> = con.keys(pattern).await?;
     let values: Vec<String> = con.mget(keys).await?;
