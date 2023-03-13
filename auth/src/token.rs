@@ -129,3 +129,57 @@ async fn refresh_token(
         _ => Err(AuthError::RequestError),
     };
 }
+
+/**
+ * Validate a token against the twitch api endpoint
+ */
+pub async fn validate_token(token: &str) -> Result<(), Error> {
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get("https://id.twitch.tv/oauth2/validate")
+        .header("Authorization", format!("OAuth {}", token))
+        .send()
+        .await;
+
+    let res = match res {
+        Ok(res) => res,
+        Err(_) => return Err(anyhow::anyhow!("Request error")),
+    };
+
+    return match res.status() {
+        reqwest::StatusCode::OK => Ok(()),
+        _ => Err(anyhow::anyhow!("Invalid token")),
+    };
+}
+
+/**
+ * Validate multiple tokens against the twitch api endpoint
+ */
+pub async fn validate_tokens(tokens: Vec<String>) -> Result<(), Error> {
+    let client = reqwest::Client::new();
+
+    let mut futures = Vec::new();
+    for token in tokens {
+        let res = client
+            .get("https://id.twitch.tv/oauth2/validate")
+            .header("Authorization", format!("OAuth {}", token))
+            .send();
+        futures.push(res);
+    }
+
+    let res = futures::future::join_all(futures).await;
+
+    for res in res {
+        let res = match res {
+            Ok(res) => res,
+            Err(_) => return Ok(()),
+        };
+
+        if res.status() != reqwest::StatusCode::OK {
+            return Ok(());
+        }
+    }
+
+    return Ok(());
+}

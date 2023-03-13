@@ -12,32 +12,17 @@ struct ValidationRes {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let client = reqwest::Client::new();
-    let token = std::env::var("TWITCH_TOKEN").expect("TWITCH_TOKEN not set");
+    dotenvy::dotenv().ok();
+    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+
     loop {
-        let res = client
-            .get("https://id.twitch.tv/oauth2/validate")
-            .header("Authorization", format!("OAuth {}", token))
-            .send()
-            .await;
-        let res = match res {
-            Ok(x) => x,
-            Err(err) => {
-                println!("Error: {}", err);
-                continue;
-            }
-        };
+        let mut con = cache::connect(&redis_url).await?;
+        let tokens = auth::token::get_all_active_tokens(&mut con).await?;
 
-        let res = res.json::<ValidationRes>().await;
-        let res = match res {
-            Ok(x) => x,
-            Err(err) => {
-                println!("Error: {}", err);
-                continue;
-            }
-        };
+        for token in tokens {
+            auth::token::validate_token(&token).await?;
+        }
 
-        println!("{:?}", res);
         tokio::time::sleep(tokio::time::Duration::from_secs(50 * 60)).await;
     }
 }
