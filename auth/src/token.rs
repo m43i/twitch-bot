@@ -51,6 +51,20 @@ pub async fn get_bot_token(
 }
 
 /**
+ * Get all active tokens
+ */
+pub async fn get_all_active_tokens(redis: &mut Connection) -> Result<Vec<String>, Error> {
+    let bot_pattern = "bot:*";
+    let user_pattern = "token:*";
+
+    let mut bot_tokens = cache::mget::<String>(bot_pattern, redis).await?;
+    let user_tokens = cache::mget::<String>(user_pattern, redis).await?;
+    bot_tokens.extend(user_tokens);
+
+    return Ok(bot_tokens);
+}
+
+/**
  * Refresh a bot access token for a given bot
  */
 pub async fn refresh_bot_token(
