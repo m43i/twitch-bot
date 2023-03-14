@@ -13,7 +13,7 @@ pub async fn create_user(
     let insert = user_entity::Entity::insert(user)
         .on_conflict(
             sea_orm::sea_query::OnConflict::column(user_entity::Column::Id)
-                .do_nothing()
+                .update_column(user_entity::Column::Id)
                 .to_owned(),
         )
         .exec(db)
@@ -40,8 +40,7 @@ pub async fn create_many(
     let insert = user_entity::Entity::insert_many(users)
         .on_conflict(
             sea_orm::sea_query::OnConflict::column(user_entity::Column::Id)
-                .update_column(user_entity::Column::Nick)
-                .update_column(user_entity::Column::UpdatedAt)
+                .update_column(user_entity::Column::Id)
                 .to_owned(),
         )
         .exec(db)
