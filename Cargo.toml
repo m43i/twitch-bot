@@ -5,6 +5,7 @@ members = [
     "websocket",
     "parser",
     "auth",
+    "twitch-api",
     "bot-watch-time",
     "bot-message-saver",
     "bot-token-validator",
