@@ -14,6 +14,20 @@ pub async fn get_channel(
 }
 
 /**
+ * Get live channels
+ */
+pub async fn get_live_channels(
+    db: &DatabaseConnection,
+) -> Result<Vec<channel_entity::Model>, Error> {
+    let channels = channel_entity::Entity::find()
+        .filter(channel_entity::Column::Live.eq(true as i8))
+        .filter(channel_entity::Column::Active.eq(true as i8))
+        .all(db)
+        .await?;
+    return Ok(channels);
+}
+
+/**
  * Deactive a channel
  */
 pub async fn deactivate_channel(channel: i32, db: &DatabaseConnection) -> Result<(), Error> {

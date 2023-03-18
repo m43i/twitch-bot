@@ -12,6 +12,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "prisma": "^4.10.1"
+    "prisma": "^4.11.0"
   }
 }
