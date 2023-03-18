@@ -17,10 +17,6 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::chat_message::Entity")]
     ChatMessage,
-    #[sea_orm(has_many = "super::command::Entity")]
-    Command,
-    #[sea_orm(has_many = "super::stream_history::Entity")]
-    StreamHistory,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::Id",
@@ -36,18 +32,6 @@ pub enum Relation {
 impl Related<super::chat_message::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ChatMessage.def()
-    }
-}
-
-impl Related<super::command::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Command.def()
-    }
-}
-
-impl Related<super::stream_history::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::StreamHistory.def()
     }
 }
 

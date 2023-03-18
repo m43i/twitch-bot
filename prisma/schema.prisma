@@ -5,22 +5,9 @@ datasource db {
 
 model Bot {
     id String @id @default(uuid())
+    twitch_id Int @unique
     nick String @db.VarChar(255)
     refresh_token String @db.VarChar(255)
-}
-
-model Account {
-    id String @id @default(uuid())
-    user_id Int @unique
-    user User @relation(fields: [user_id], references: [id])
-    type String @db.VarChar(255)
-    access_token String? @db.VarChar(255)
-    refresh_token String? @db.VarChar(255)
-    id_token String? @db.VarChar(255)
-    expires_in Int?
-    scope String? @db.VarChar(255)
-    created_at DateTime @default(now())
-    updated_at DateTime @default(now())
 }
 
 model User {
@@ -30,7 +17,6 @@ model User {
     email String? @db.VarChar(255)
     profile_image_url String? @db.VarChar(255)
     channel Channel?
-    account Account?
     chat_messages ChatMessage[]
     watch_time WatchTime[]
     created_at DateTime @default(now())
@@ -41,23 +27,9 @@ model Channel {
     id Int @id
     active Boolean @default(false)
     live Boolean @default(false)
-    commands Command[]
-    stream_history StreamHistory[]
     watch_time WatchTime[]
     chat_messages ChatMessage[]
     user User @relation(fields: [id], references: [id])
-    created_at DateTime @default(now())
-    updated_at DateTime @default(now())
-}
-
-model StreamHistory {
-    id String @id @default(uuid())
-    channel_id Int
-    channel Channel @relation(fields: [channel_id], references: [id])
-    game String @db.VarChar(255)
-    title String @db.VarChar(255)
-    started_at DateTime @db.Timestamp(0)
-    ended_at DateTime? @db.Timestamp(0)
     created_at DateTime @default(now())
     updated_at DateTime @default(now())
 }
@@ -70,27 +42,6 @@ model WatchTime {
     broadcaster Channel @relation(fields: [boardcaster_id], references: [id])
     started_at DateTime @db.Timestamp(0)
     ended_at DateTime? @db.Timestamp(0)
-    created_at DateTime @default(now())
-    updated_at DateTime @default(now())
-}
-
-enum Permission {
-    ADMIN
-    MOD
-    VIP
-    PERMIT
-    USER
-}
-
-model Command {
-    id String @id @default(uuid())
-    channel_id Int
-    channel Channel @relation(fields: [channel_id], references: [id])
-    name String @db.VarChar(255)
-    body String @db.Text
-    permission Permission @default(USER)
-    invoke_count Int @default(0)
-    last_invoked DateTime? @db.Timestamp(0)
     created_at DateTime @default(now())
     updated_at DateTime @default(now())
 }
