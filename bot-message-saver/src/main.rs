@@ -1,6 +1,7 @@
 mod handler;
 
 use anyhow::{Error, Result};
+use database::entity::bot as bot_entity;
 use database::entity::chat_message as Chat_Message;
 use database::entity::user as User;
 use dotenvy::dotenv;
@@ -8,45 +9,47 @@ use parser::irc_parser::IRCCommandType;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use websocket::client::connect_channels;
-use websocket::config::websocket_config;
-use websocket::futures_util::*;
+use websocket::futures_util::StreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv().ok();
+    let bot_name = std::env::var("TWITCH_BOT").expect("TWITCH_BOT not set");
     let ws_endpoint = std::env::var("TWITCH_WS_ENDPOINT").expect("WS_ENDPOINT not set");
     let db_endpoint = std::env::var("DATABASE_URL").expect("DB_URL not set");
     let redis_endpoint = std::env::var("REDIS_URL").expect("REDIS_URL not set");
     let client_id = std::env::var("TWITCH_CLIENT_ID").expect("CLIENT_ID not set");
     let client_secret = std::env::var("TWITCH_CLIENT_SECRET").expect("CLIENT_SECRET not set");
 
-    let db = database::connect(&db_endpoint).await;
-    let db = match db {
+    let db = match database::connect(&db_endpoint).await {
         Ok(x) => x,
         Err(_) => return Err(Error::msg("Failed to connect to database")),
     };
 
-    let redis = cache::connect(&redis_endpoint).await;
-    let mut redis = match redis {
+    let bot: bot_entity::Model = match database::handler::bot::get_bot(&bot_name, &db).await {
+        Ok(x) => x,
+        Err(_) => return Err(Error::msg("Failed to get bot")),
+    };
+
+    let mut redis = match cache::connect(&redis_endpoint).await {
         Ok(x) => x,
         Err(_) => return Err(Error::msg("Failed to connect to redis")),
     };
 
-    let config = websocket_config(
-        "dustin",
-        &ws_endpoint,
-        &client_id,
-        &client_secret,
-        &db,
-        &mut redis,
-    )
-    .await;
-    let config = match config {
+    let token = match auth::token::get_bot_token(&bot_name, &client_id, &client_secret, &db, &mut redis).await {
         Ok(x) => x,
-        Err(_) => return Err(Error::msg("Failed to get config")),
+        Err(_) => return Err(Error::msg("Failed to get bot token")),
     };
 
-    let mut ws = config.ws;
+    let mut ws = match websocket::client::connect(&ws_endpoint).await {
+        Ok(x) => x,
+        Err(_) => return Err(Error::msg("Failed to connect to websocket")),
+    };
+
+    match websocket::messages::auth_message(&token, &bot.nick, &mut ws).await {
+        Ok(_) => (),
+        Err(_) => return Err(Error::msg("Failed to send auth message")),
+    }
 
     match connect_channels(&db, &mut ws).await {
         Ok(_) => (),
