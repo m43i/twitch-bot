@@ -30,7 +30,25 @@ model Channel {
     live Boolean @default(false)
     watch_time WatchTime[]
     chat_messages ChatMessage[]
+    commands Command[]
     user User @relation(fields: [id], references: [id])
+    created_at DateTime @default(now())
+    updated_at DateTime @default(now())
+}
+
+enum CommandPermission {
+    NORMAL
+    MOD
+    ADMIN
+}
+
+model Command {
+    id String @id @default(uuid())
+    command String @db.VarChar(255)
+    content String @db.Text
+    permission CommandPermission @default(NORMAL)
+    channel_id Int
+    channel Channel @relation(fields: [channel_id], references: [id])
     created_at DateTime @default(now())
     updated_at DateTime @default(now())
 }
