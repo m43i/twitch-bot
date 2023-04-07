@@ -59,8 +59,8 @@ async fn main() -> Result<(), Error> {
     let chat_messages: Arc<Mutex<Vec<Chat_Message::ActiveModel>>> = Arc::new(Mutex::new(vec![]));
     let users: Arc<Mutex<Vec<User::ActiveModel>>> = Arc::new(Mutex::new(vec![]));
 
-    let chat_messages_clone = chat_messages.clone();
-    let users_clone = users.clone();
+    let chat_messages_clone = Arc::clone(&chat_messages);
+    let users_clone = Arc::clone(&users);
     let db_clone = db.clone();
 
     let save_loop = tokio::spawn(async move {

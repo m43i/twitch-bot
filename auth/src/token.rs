@@ -40,7 +40,7 @@ pub async fn get_bot_token(
     db: &DatabaseConnection,
     redis: &mut Connection,
 ) -> Result<String, Error> {
-    let token = cache::get::<String>(&format!("bot:{}", bot), redis).await?;
+    let token = cache::get::<String>(&format!("bot:{}:token", bot), redis).await?;
     if token.is_some() {
         let token = token.unwrap();
         return Ok(token);
@@ -54,8 +54,8 @@ pub async fn get_bot_token(
  * Get all active tokens
  */
 pub async fn get_all_active_tokens(redis: &mut Connection) -> Result<Vec<String>, Error> {
-    let bot_pattern = "bot:*";
-    let user_pattern = "token:*";
+    let bot_pattern = "bot:*:token";
+    let user_pattern = "user:*:token";
 
     let mut bot_tokens = cache::mget::<String>(bot_pattern, redis).await?;
     let user_tokens = cache::mget::<String>(user_pattern, redis).await?;
@@ -79,7 +79,7 @@ pub async fn refresh_bot_token(
 
     database::handler::token::update_bot_refresh_token(db, &res.refresh_token).await?;
     cache::set_with_ttl(
-        &format!("bot:{}", bot),
+        &format!("bot:{}:token", bot),
         &res.access_token,
         (&res.expires_in - 60 * 20) as usize,
         redis,

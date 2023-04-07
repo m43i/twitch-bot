@@ -5,9 +5,9 @@ use sea_orm::{prelude::*, ActiveValue};
 /**
  * Get a channel by id
  */
-pub async fn get_channel(
+pub async fn get_channel<T: ConnectionTrait>(
     channel: i32,
-    db: &DatabaseConnection,
+    db: &T,
 ) -> Result<Option<channel_entity::Model>, Error> {
     let channel = channel_entity::Entity::find_by_id(channel).one(db).await?;
     return Ok(channel);
@@ -16,8 +16,8 @@ pub async fn get_channel(
 /**
  * Get live channels
  */
-pub async fn get_live_channels(
-    db: &DatabaseConnection,
+pub async fn get_live_channels<T: ConnectionTrait>(
+    db: &T,
 ) -> Result<Vec<channel_entity::Model>, Error> {
     let channels = channel_entity::Entity::find()
         .filter(channel_entity::Column::Live.eq(true as i8))
@@ -30,7 +30,7 @@ pub async fn get_live_channels(
 /**
  * Deactive a channel
  */
-pub async fn deactivate_channel(channel: i32, db: &DatabaseConnection) -> Result<(), Error> {
+pub async fn deactivate_channel<T: ConnectionTrait>(channel: i32, db: &T) -> Result<(), Error> {
     let channel = channel_entity::Entity::find_by_id(channel).one(db).await?;
     let channel = match channel {
         Some(channel) => channel,
