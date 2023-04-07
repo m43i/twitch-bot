@@ -3,13 +3,11 @@ on:
   pull_request:
     branches:
       - main
-      - develope
     paths-ignore:
       - '**/.md'
   push:
     branches:
       - main
-      - develope
     paths-ignore:
       - '**/.md'
   workflow_dispatch:
