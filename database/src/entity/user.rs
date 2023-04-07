@@ -13,6 +13,7 @@ pub struct Model {
     pub profile_image_url: Option<String>,
     pub created_at: DateTime,
     pub updated_at: DateTime,
+    pub is_bot: i8,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
