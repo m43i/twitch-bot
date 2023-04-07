@@ -16,6 +16,7 @@ model User {
     display_name String @db.VarChar(255)
     email String? @db.VarChar(255)
     profile_image_url String? @db.VarChar(255)
+    is_bot Boolean @default(false)
     channel Channel?
     chat_messages ChatMessage[]
     watch_time WatchTime[]
