@@ -30,6 +30,18 @@ struct RefreshTokenResponse {
     token_type: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum TokenType {
+    Bot,
+    User,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenInfo {
+    pub token_type: TokenType,
+    pub id: String,
+}
+
 /**
  * Get a bot access token for a given bot
  */
@@ -51,6 +63,13 @@ pub async fn get_bot_token(
 }
 
 /**
+ * Get info about the user from the token
+ */
+pub async fn get_token_info(token: &str, redis: &mut Connection) -> Result<Option<TokenInfo>, Error> {
+    return Ok(cache::get_as::<TokenInfo>(&format!("token:{}", &token), redis).await?);
+}
+
+/**
  * Get all active tokens
  */
 pub async fn get_all_active_tokens(redis: &mut Connection) -> Result<Vec<String>, Error> {
@@ -62,6 +81,28 @@ pub async fn get_all_active_tokens(redis: &mut Connection) -> Result<Vec<String>
     bot_tokens.extend(user_tokens);
 
     return Ok(bot_tokens);
+}
+
+/**
+ * Delete a token from the cache based on the provided token
+ */
+pub async fn delete_token(token: &str, redis: &mut Connection) -> Result<(), Error> {
+    let info = match get_token_info(token, redis).await? {
+        Some(info) => info,
+        None => return Ok(()),
+    };
+
+    match info.token_type {
+        TokenType::Bot => {
+            cache::delete(&format!("bot:{}:token", &info.id), redis).await?;
+        },
+        TokenType::User => {
+            cache::delete(&format!("user:{}:token", info.id), redis).await?;
+        },
+    }
+    cache::delete(&format!("token:{}", &token), redis).await?;
+
+    return Ok(());
 }
 
 /**
@@ -81,6 +122,22 @@ pub async fn refresh_bot_token(
     cache::set_with_ttl(
         &format!("bot:{}:token", bot),
         &res.access_token,
+        (&res.expires_in - 60 * 20) as usize,
+        redis,
+    )
+    .await?;
+
+    let token_info = match serde_json::to_string(&TokenInfo {
+        token_type: TokenType::Bot,
+        id: String::from(bot),
+    }) {
+        Ok(token_info) => token_info,
+        Err(_) => return Err(anyhow::anyhow!("Failed to serialize token info")),
+    };
+
+    cache::set_with_ttl(
+        &format!("token:{}", &res.access_token),
+        &token_info,
         (&res.expires_in - 60 * 20) as usize,
         redis,
     )
@@ -133,7 +190,7 @@ async fn refresh_token(
 /**
  * Validate a token against the twitch api endpoint
  */
-pub async fn validate_token(token: &str) -> Result<(), Error> {
+pub async fn validate_token(token: &str, redis: &mut Connection) -> Result<(), Error> {
     let client = reqwest::Client::new();
 
     let res = client
@@ -144,42 +201,17 @@ pub async fn validate_token(token: &str) -> Result<(), Error> {
 
     let res = match res {
         Ok(res) => res,
-        Err(_) => return Err(anyhow::anyhow!("Request error")),
+        Err(_) => {
+            crate::token::delete_token(&token, redis).await?;
+            return Err(anyhow::anyhow!("Request error"))
+        },
     };
 
     return match res.status() {
         reqwest::StatusCode::OK => Ok(()),
-        _ => Err(anyhow::anyhow!("Invalid token")),
+        _ => {
+            crate::token::delete_token(&token, redis).await?;
+            Err(anyhow::anyhow!("Invalid token"))
+        },
     };
-}
-
-/**
- * Validate multiple tokens against the twitch api endpoint
- */
-pub async fn validate_tokens(tokens: Vec<String>) -> Result<(), Error> {
-    let client = reqwest::Client::new();
-
-    let mut futures = Vec::new();
-    for token in tokens {
-        let res = client
-            .get("https://id.twitch.tv/oauth2/validate")
-            .header("Authorization", format!("OAuth {}", token))
-            .send();
-        futures.push(res);
-    }
-
-    let res = futures::future::join_all(futures).await;
-
-    for res in res {
-        let res = match res {
-            Ok(res) => res,
-            Err(_) => return Ok(()),
-        };
-
-        if res.status() != reqwest::StatusCode::OK {
-            return Ok(());
-        }
-    }
-
-    return Ok(());
 }

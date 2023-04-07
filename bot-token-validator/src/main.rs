@@ -20,7 +20,7 @@ async fn main() -> Result<(), Error> {
         let tokens = auth::token::get_all_active_tokens(&mut con).await?;
 
         for token in tokens {
-            auth::token::validate_token(&token).await?;
+            auth::token::validate_token(&token, &mut con).await?;
         }
 
         tokio::time::sleep(tokio::time::Duration::from_secs(50 * 60)).await;
