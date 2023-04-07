@@ -5,9 +5,9 @@ use sea_orm::{prelude::*, sea_query::Expr, Set};
 /**
  * Get all users currently watching a channel
  */
-pub async fn get_currently_watching(
+pub async fn get_currently_watching<T: ConnectionTrait>(
     channel_id: i32,
-    db: &DatabaseConnection,
+    db: &T,
 ) -> Result<Vec<watch_time_entity::Model>, Error> {
     let watch_time: Vec<watch_time_entity::Model> = watch_time_entity::Entity::find()
         .filter(watch_time_entity::Column::BoardcasterId.eq(channel_id))
@@ -21,10 +21,10 @@ pub async fn get_currently_watching(
 /**
  * Start watching a channel for a list of users
  */
-pub async fn start_watching(
+pub async fn start_watching<T: ConnectionTrait>(
     channel_id: i32,
     user_id: Vec<i32>,
-    db: &DatabaseConnection,
+    db: &T,
 ) -> Result<(), Error> {
     let mut watch_time: Vec<watch_time_entity::ActiveModel> = Vec::new();
 
@@ -51,10 +51,10 @@ pub async fn start_watching(
 /**
  * Stop watching for a list of users in a given channel
  */
-pub async fn stop_watching(
+pub async fn stop_watching<T: ConnectionTrait>(
     channel_id: i32,
     user_id: Vec<i32>,
-    db: &DatabaseConnection,
+    db: &T,
 ) -> Result<(), Error> {
     watch_time_entity::Entity::update_many()
         .col_expr(

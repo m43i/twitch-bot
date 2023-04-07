@@ -1,11 +1,11 @@
 use crate::entity::bot as bot_entity;
 use anyhow::{Error, Result};
-use sea_orm::{prelude::*, DatabaseConnection};
+use sea_orm::prelude::*;
 
 /**
  * Get a bot refresh token
  */
-pub async fn get_bot_refresh_token(bot: &str, db: &DatabaseConnection) -> Result<String, Error> {
+pub async fn get_bot_refresh_token<T: ConnectionTrait>(bot: &str, db: &T) -> Result<String, Error> {
     let bot = bot_entity::Entity::find_by_id(bot).one(db).await?;
 
     let bot = match bot {
@@ -22,8 +22,8 @@ pub async fn get_bot_refresh_token(bot: &str, db: &DatabaseConnection) -> Result
 /**
  * Update a bot refresh token with a new refresh token value
  */
-pub async fn update_bot_refresh_token(
-    db: &DatabaseConnection,
+pub async fn update_bot_refresh_token<T: ConnectionTrait>(
+    db: &T,
     refresh_token: &str,
 ) -> Result<(), Error> {
     let bot = bot_entity::Entity::find_by_id("dustin").one(db).await?;

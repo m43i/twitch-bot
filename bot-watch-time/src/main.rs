@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use database::{entity::channel as channel_entity, sea_orm::ActiveValue};
+use database::{entity::channel as channel_entity, sea_orm::{ActiveValue, TransactionTrait}};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -53,7 +53,16 @@ async fn main() -> Result<(), Error> {
 
                 users.push(user);
             }
-            match database::handler::user::create_many(users, &db).await {
+
+            let txn = match db.begin().await {
+                Ok(txn) => txn,
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                    continue;
+                }
+            };
+
+            match database::handler::user::create_many(users, &txn).await {
                 Ok(_) => {}
                 Err(e) => {
                     println!("Error: {:?}", e);
@@ -62,7 +71,7 @@ async fn main() -> Result<(), Error> {
             };
 
             let currently_watching =
-                database::handler::watchtime::get_currently_watching(channel.id, &db).await;
+                database::handler::watchtime::get_currently_watching(channel.id, &txn).await;
             let currently_watching = match currently_watching {
                 Ok(watching) => watching,
                 Err(e) => {
@@ -94,7 +103,7 @@ async fn main() -> Result<(), Error> {
                 match database::handler::watchtime::stop_watching(
                     channel.id,
                     no_longer_watching,
-                    &db,
+                    &txn,
                 )
                 .await
                 {
@@ -105,7 +114,7 @@ async fn main() -> Result<(), Error> {
                 };
             }
             if new_watching.len() > 0 {
-                match database::handler::watchtime::start_watching(channel.id, new_watching, &db)
+                match database::handler::watchtime::start_watching(channel.id, new_watching, &txn)
                     .await
                 {
                     Ok(_) => {}
@@ -114,6 +123,14 @@ async fn main() -> Result<(), Error> {
                     }
                 };
             }
+
+            match txn.commit().await {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                    continue;
+                }
+            };
         }
 
         tokio::time::sleep(std::time::Duration::from_secs(2 * 60)).await;
