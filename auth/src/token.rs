@@ -65,7 +65,10 @@ pub async fn get_bot_token(
 /**
  * Get info about the user from the token
  */
-pub async fn get_token_info(token: &str, redis: &mut Connection) -> Result<Option<TokenInfo>, Error> {
+pub async fn get_token_info(
+    token: &str,
+    redis: &mut Connection,
+) -> Result<Option<TokenInfo>, Error> {
     return Ok(cache::get_as::<TokenInfo>(&format!("token:{}", &token), redis).await?);
 }
 
@@ -95,10 +98,10 @@ pub async fn delete_token(token: &str, redis: &mut Connection) -> Result<(), Err
     match info.token_type {
         TokenType::Bot => {
             cache::delete(&format!("bot:{}:token", &info.id), redis).await?;
-        },
+        }
         TokenType::User => {
             cache::delete(&format!("user:{}:token", info.id), redis).await?;
-        },
+        }
     }
     cache::delete(&format!("token:{}", &token), redis).await?;
 
@@ -203,8 +206,8 @@ pub async fn validate_token(token: &str, redis: &mut Connection) -> Result<(), E
         Ok(res) => res,
         Err(_) => {
             crate::token::delete_token(&token, redis).await?;
-            return Err(anyhow::anyhow!("Request error"))
-        },
+            return Err(anyhow::anyhow!("Request error"));
+        }
     };
 
     return match res.status() {
@@ -212,6 +215,6 @@ pub async fn validate_token(token: &str, redis: &mut Connection) -> Result<(), E
         _ => {
             crate::token::delete_token(&token, redis).await?;
             Err(anyhow::anyhow!("Invalid token"))
-        },
+        }
     };
 }
